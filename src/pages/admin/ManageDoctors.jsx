@@ -43,18 +43,23 @@ export default function ManageDoctors() {
       data: { session },
     } = await supabase.auth.getSession()
 
-    const { error } = await supabase.functions.invoke('admin-create-user', {
+    const { error: invokeError } = await supabase.functions.invoke('admin-create-user', {
       body: { ...form, role: 'doctor' },
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
+    
+    // Wait briefly and load again in case it succeeded but threw timeout
+    await new Promise(r => setTimeout(r, 1500))
+    await loadDoctors()
+    
     setSubmitting(false)
-    if (error) {
-      setError(error.message || 'Failed to create doctor. Make sure the admin-create-user edge function is deployed.')
+    if (invokeError) {
+      setError(`Notice: Request may have timed out, but the record might have been created. Refresh the page if it doesn't appear. Details: ${invokeError.message}`)
       return
     }
+    
     setShowAdd(false)
     setForm(emptyForm)
-    loadDoctors()
   }
 
   async function handleUpdate(e) {
@@ -161,7 +166,7 @@ export default function ManageDoctors() {
               <label>Department</label>
               <input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
             </div>
-            {error && <div className="error-text">{error}</div>}
+            {error && <div className="error-text" style={{color: '#d97706', marginBottom: '10px'}}>{error}</div>}
             <button type="submit" disabled={submitting}>{submitting ? 'Creating...' : 'Create Doctor'}</button>
           </form>
         </Modal>

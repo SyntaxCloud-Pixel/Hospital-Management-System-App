@@ -9,6 +9,7 @@ export default function ManageReceptionists() {
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -32,20 +33,52 @@ export default function ManageReceptionists() {
     e.preventDefault()
     setError('')
     setSubmitting(true)
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    const { error } = await supabase.functions.invoke('admin-create-user', {
+    const { data: { session } } = await supabase.auth.getSession()
+    const { error: invokeError } = await supabase.functions.invoke('admin-create-user', {
       body: { ...form, role: 'receptionist' },
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
+    
+    // Wait briefly and load again in case it succeeded but threw timeout
+    await new Promise(r => setTimeout(r, 1500))
+    await load()
+    
     setSubmitting(false)
-    if (error) {
-      setError(error.message || 'Failed to create receptionist.')
+    if (invokeError) {
+      setError(`Notice: Request may have timed out, but the record might have been created. Refresh the page if it doesn't appear. Details: ${invokeError.message}`)
       return
     }
+    
     setShowAdd(false)
     setForm(emptyForm)
+  }
+
+  function openEdit(r) {
+    setEditing(r)
+    setForm({
+      fullName: r.full_name,
+      phone: r.phone || '',
+      email: r.email || '',
+      password: ''
+    })
+    setError('')
+  }
+
+  async function handleUpdate(e) {
+    e.preventDefault()
+    setSubmitting(true)
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ full_name: form.fullName, phone: form.phone })
+      .eq('id', editing.id)
+      
+    setSubmitting(false)
+    if (updateError) {
+      setError(updateError.message)
+      return
+    }
+    
+    setEditing(null)
     load()
   }
 
@@ -59,7 +92,7 @@ export default function ManageReceptionists() {
     <DashboardLayout>
       <div className="page-header">
         <h1>Manage Receptionists</h1>
-        <button onClick={() => { setForm(emptyForm); setShowAdd(true) }}>+ Add Receptionist</button>
+        <button onClick={() => { setForm(emptyForm); setShowAdd(true); setError('') }}>+ Add Receptionist</button>
       </div>
       <div className="table-wrap">
         <table>
@@ -77,7 +110,10 @@ export default function ManageReceptionists() {
                   <td>{r.full_name}</td>
                   <td>{r.email}</td>
                   <td>{r.phone || '-'}</td>
-                  <td><button className="danger" onClick={() => handleDelete(r.id)}>Delete</button></td>
+                  <td className="actions-row">
+                    <button className="secondary" onClick={() => openEdit(r)}>Edit</button>
+                    <button className="danger" onClick={() => handleDelete(r.id)}>Delete</button>
+                  </td>
                 </tr>
               ))
             )}
@@ -104,8 +140,25 @@ export default function ManageReceptionists() {
               <label>Phone</label>
               <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
-            {error && <div className="error-text">{error}</div>}
+            {error && <div className="error-text" style={{color: '#d97706', marginBottom: '10px'}}>{error}</div>}
             <button type="submit" disabled={submitting}>{submitting ? 'Creating...' : 'Create Receptionist'}</button>
+          </form>
+        </Modal>
+      )}
+
+      {editing && (
+        <Modal title="Edit Receptionist" onClose={() => setEditing(null)}>
+          <form onSubmit={handleUpdate}>
+            <div className="form-group">
+              <label>Full Name</label>
+              <input required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Phone</label>
+              <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </div>
+            {error && <div className="error-text">{error}</div>}
+            <button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Save Changes'}</button>
           </form>
         </Modal>
       )}

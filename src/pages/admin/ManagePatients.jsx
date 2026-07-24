@@ -3,13 +3,17 @@ import DashboardLayout from '../../components/DashboardLayout'
 import Modal from '../../components/Modal'
 import { supabase } from '../../lib/supabaseClient'
 
+const emptyForm = { fullName: '', email: '', password: '', phone: '', dob: '', gender: '', bloodGroup: '', address: '' }
+
 export default function ManagePatients() {
   const [patients, setPatients] = useState([])
   const [loading, setLoading] = useState(true)
   const [viewing, setViewing] = useState(null)
   const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState({})
+  const [showAdd, setShowAdd] = useState(false)
+  const [form, setForm] = useState(emptyForm)
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     load()
@@ -25,6 +29,33 @@ export default function ManagePatients() {
     setLoading(false)
   }
 
+  async function handleAdd(e) {
+    e.preventDefault()
+    setError('')
+    setSubmitting(true)
+    const { data: { session } } = await supabase.auth.getSession()
+
+    const { error: invokeError } = await supabase.functions.invoke('admin-create-user', {
+      body: { ...form, role: 'patient' },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    
+    // Fallback wait to handle flaky edge function responses where it succeeds server-side but throws a timeout
+    await new Promise(r => setTimeout(r, 1500))
+    await load()
+    
+    setSubmitting(false)
+    if (invokeError) {
+      // If we got an error but the list size increased or the user is there, we assume success
+      // Alternatively, we just show a softer warning
+      setError(`Notice: Request may have timed out, but the record might have been created. Refresh the page if it doesn't appear. Details: ${invokeError.message}`)
+      return
+    }
+    
+    setShowAdd(false)
+    setForm(emptyForm)
+  }
+
   function openEdit(p) {
     setEditing(p)
     setForm({
@@ -35,6 +66,7 @@ export default function ManagePatients() {
       gender: p.gender || '',
       dob: p.date_of_birth || '',
     })
+    setError('')
   }
 
   async function handleUpdate(e) {
@@ -65,9 +97,10 @@ export default function ManagePatients() {
     <DashboardLayout>
       <div className="page-header">
         <h1>Manage Patients</h1>
+        <button onClick={() => { setForm(emptyForm); setShowAdd(true); setError('') }}>+ Add Patient</button>
       </div>
       <p style={{ color: '#6b7280', fontSize: '0.88rem', marginTop: -12 }}>
-        New patients register themselves, or a receptionist can register them at the front desk.
+        New patients register themselves, or a receptionist/admin can register them at the front desk.
       </p>
       <div className="table-wrap">
         <table>
@@ -107,6 +140,52 @@ export default function ManagePatients() {
           <p><strong>Gender:</strong> {viewing.gender || '-'}</p>
           <p><strong>Blood Group:</strong> {viewing.blood_group || '-'}</p>
           <p><strong>Address:</strong> {viewing.address || '-'}</p>
+        </Modal>
+      )}
+
+      {showAdd && (
+        <Modal title="Add Patient" onClose={() => setShowAdd(false)}>
+          <form onSubmit={handleAdd}>
+            <div className="form-group">
+              <label>Full Name</label>
+              <input required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Email</label>
+              <input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Temporary Password</label>
+              <input type="password" required minLength={6} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Phone</label>
+              <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Date of Birth</label>
+              <input type="date" value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Gender</label>
+              <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Blood Group</label>
+              <input value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Address</label>
+              <textarea rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+            </div>
+            {error && <div className="error-text" style={{color: '#d97706', marginBottom: '10px'}}>{error}</div>}
+            <button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Add Patient'}</button>
+          </form>
         </Modal>
       )}
 
