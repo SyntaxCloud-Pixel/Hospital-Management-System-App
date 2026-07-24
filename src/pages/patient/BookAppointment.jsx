@@ -23,6 +23,12 @@ export default function BookAppointment() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    
+    if (!form.date || !form.time) {
+      setError('Please provide a valid date and time.')
+      return
+    }
+    
     setSuccess('')
     setSubmitting(true)
     const { error } = await supabase.from('appointments').insert({

@@ -21,13 +21,27 @@ export default function RegisterPatient() {
     const {
       data: { session },
     } = await supabase.auth.getSession()
-    const { error } = await supabase.functions.invoke('admin-create-user', {
+    const { data: resData, error } = await supabase.functions.invoke('admin-create-user', {
       body: { ...form, role: 'patient' },
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
     setSubmitting(false)
     if (error) {
-      setError(error.message || 'Failed to register patient.')
+      if (error.message && error.message.toLowerCase().includes('rate limit')) {
+        setError('Too many registration attempts. Please wait a moment and try again.')
+      } else {
+        setError(error.message || 'Failed to register patient.')
+      }
+      return
+    }
+    
+    // Check if the edge function returned success: false
+    if (resData && !resData.success) {
+      if (resData.error && resData.error.toLowerCase().includes('rate limit')) {
+        setError('Too many registration attempts. Please wait a moment and try again.')
+      } else {
+        setError(resData.error || 'Failed to register patient.')
+      }
       return
     }
     setSuccess('Patient registered successfully.')
@@ -53,7 +67,13 @@ export default function RegisterPatient() {
           </div>
           <div className="form-group">
             <label>Phone</label>
-            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            <input 
+              required
+              pattern="^\+?[0-9\-\s()]{7,15}$"
+              title="Please enter a valid phone number (e.g. +1234567890)"
+              value={form.phone} 
+              onChange={(e) => setForm({ ...form, phone: e.target.value })} 
+            />
           </div>
           <div className="form-group">
             <label>Date of Birth</label>

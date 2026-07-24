@@ -16,7 +16,7 @@ create table if not exists profiles (
   email text not null,
   full_name text not null,
   role text not null check (role in ('admin', 'doctor', 'receptionist', 'patient')),
-  phone text,
+  phone text not null,
   created_at timestamptz not null default now()
 );
 
@@ -48,7 +48,8 @@ create table if not exists appointments (
   status text not null default 'pending' check (status in ('pending', 'confirmed', 'completed', 'cancelled')),
   reason text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint valid_date check (appointment_date >= '2024-01-01')
 );
 
 -- Prescriptions

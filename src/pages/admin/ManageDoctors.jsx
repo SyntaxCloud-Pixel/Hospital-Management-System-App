@@ -43,20 +43,24 @@ export default function ManageDoctors() {
       data: { session },
     } = await supabase.auth.getSession()
 
-    const { error: invokeError } = await supabase.functions.invoke('admin-create-user', {
+    const { data: resData, error: invokeError } = await supabase.functions.invoke('admin-create-user', {
       body: { ...form, role: 'doctor' },
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
     
-    // Wait briefly and load again in case it succeeded but threw timeout
-    await new Promise(r => setTimeout(r, 1500))
-    await loadDoctors()
-    
     setSubmitting(false)
+    
     if (invokeError) {
-      setError(`Notice: Request may have timed out, but the record might have been created. Refresh the page if it doesn't appear. Details: ${invokeError.message}`)
+      setError(`Notice: Request failed or timed out. Details: ${invokeError.message}`)
       return
     }
+    
+    if (resData && !resData.success) {
+      setError(resData.error || 'Failed to create doctor')
+      return
+    }
+    
+    await loadDoctors()
     
     setShowAdd(false)
     setForm(emptyForm)

@@ -54,6 +54,12 @@ export default function AllAppointments() {
   async function handleAdd(e) {
     e.preventDefault()
     setError('')
+    
+    if (!form.appointment_date || !form.appointment_time) {
+      setError('Please provide a valid date and time.')
+      return
+    }
+    
     setSubmitting(true)
     const { error } = await supabase.from('appointments').insert({
       patient_id: form.patient_id,
@@ -76,6 +82,12 @@ export default function AllAppointments() {
   async function handleUpdate(e) {
     e.preventDefault()
     setError('')
+    
+    if (!form.appointment_date || !form.appointment_time) {
+      setError('Please provide a valid date and time.')
+      return
+    }
+    
     setSubmitting(true)
     const { error } = await supabase.from('appointments').update({
       patient_id: form.patient_id,
@@ -179,7 +191,7 @@ export default function AllAppointments() {
             </div>
             <div className="form-group">
               <label>Date</label>
-              <input type="date" required value={form.appointment_date} onChange={e => setForm({...form, appointment_date: e.target.value})} />
+              <input type="date" required min="2020-01-01" value={form.appointment_date} onChange={e => setForm({...form, appointment_date: e.target.value})} />
             </div>
             <div className="form-group">
               <label>Time</label>
@@ -223,7 +235,7 @@ export default function AllAppointments() {
             </div>
             <div className="form-group">
               <label>Date</label>
-              <input type="date" required value={form.appointment_date} onChange={e => setForm({...form, appointment_date: e.target.value})} />
+              <input type="date" required min="2020-01-01" value={form.appointment_date} onChange={e => setForm({...form, appointment_date: e.target.value})} />
             </div>
             <div className="form-group">
               <label>Time</label>

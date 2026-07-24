@@ -27,7 +27,11 @@ export default function Register() {
     })
     setLoading(false)
     if (error) {
-      setError(error.message)
+      if (error.message.toLowerCase().includes('rate limit')) {
+        setError('Too many registration attempts. Please wait a moment and try again.')
+      } else {
+        setError(error.message)
+      }
       return
     }
     setSuccess('Account created! Redirecting to login...')
@@ -60,6 +64,9 @@ export default function Register() {
           <div className="form-group">
             <label>Phone</label>
             <input
+              required
+              pattern="^\+?[0-9\-\s()]{7,15}$"
+              title="Please enter a valid phone number (e.g. +1234567890)"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />

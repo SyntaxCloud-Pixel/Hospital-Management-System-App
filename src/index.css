@@ -47,6 +47,8 @@ a {
   margin-left: 240px;
   padding: 28px 32px;
   max-width: 100%;
+  min-width: 0;
+  width: 100%;
 }
 
 @media (max-width: 900px) {

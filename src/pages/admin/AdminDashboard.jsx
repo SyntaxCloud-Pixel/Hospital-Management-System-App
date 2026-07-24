@@ -138,9 +138,9 @@ export default function AdminDashboard() {
                 Use the sidebar to manage doctors, patients, receptionists, appointments, and view detailed reports.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <a href="/admin/appointments" className="btn-link" style={{ padding: '8px 12px', background: '#f3f4f6', borderRadius: '6px', textDecoration: 'none', color: '#374151', display: 'block' }}>📅 View All Appointments</a>
-                <a href="/admin/patients" className="btn-link" style={{ padding: '8px 12px', background: '#f3f4f6', borderRadius: '6px', textDecoration: 'none', color: '#374151', display: 'block' }}>🩺 Manage Patients</a>
-                <a href="/admin/reports" className="btn-link" style={{ padding: '8px 12px', background: '#f3f4f6', borderRadius: '6px', textDecoration: 'none', color: '#374151', display: 'block' }}>📊 View Analytics Reports</a>
+                <a href="/admin/appointments" className="btn-link" style={{ padding: '8px 12px', background: '#f3f4f6', borderRadius: '6px', textDecoration: 'none', color: '#374151', display: 'block' }}>View All Appointments</a>
+                <a href="/admin/patients" className="btn-link" style={{ padding: '8px 12px', background: '#f3f4f6', borderRadius: '6px', textDecoration: 'none', color: '#374151', display: 'block' }}>Manage Patients</a>
+                <a href="/admin/reports" className="btn-link" style={{ padding: '8px 12px', background: '#f3f4f6', borderRadius: '6px', textDecoration: 'none', color: '#374151', display: 'block' }}>View Analytics Reports</a>
               </div>
             </div>
           </div>

@@ -38,6 +38,12 @@ export default function ManageAppointments() {
   async function handleBook(e) {
     e.preventDefault()
     setError('')
+    
+    if (!form.date || !form.time) {
+      setError('Please provide a valid date and time.')
+      return
+    }
+    
     setSubmitting(true)
     const { error } = await supabase.from('appointments').insert({
       patient_id: form.patientId,
@@ -147,7 +153,7 @@ export default function ManageAppointments() {
             </div>
             <div className="form-group">
               <label>Date</label>
-              <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              <input type="date" required min={new Date().toISOString().slice(0, 10)} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             </div>
             <div className="form-group">
               <label>Time</label>

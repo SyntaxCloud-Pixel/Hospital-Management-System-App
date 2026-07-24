@@ -35,22 +35,24 @@ export default function ManagePatients() {
     setSubmitting(true)
     const { data: { session } } = await supabase.auth.getSession()
 
-    const { error: invokeError } = await supabase.functions.invoke('admin-create-user', {
+    const { data: resData, error: invokeError } = await supabase.functions.invoke('admin-create-user', {
       body: { ...form, role: 'patient' },
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
     
-    // Fallback wait to handle flaky edge function responses where it succeeds server-side but throws a timeout
-    await new Promise(r => setTimeout(r, 1500))
-    await load()
-    
     setSubmitting(false)
+    
     if (invokeError) {
-      // If we got an error but the list size increased or the user is there, we assume success
-      // Alternatively, we just show a softer warning
-      setError(`Notice: Request may have timed out, but the record might have been created. Refresh the page if it doesn't appear. Details: ${invokeError.message}`)
+      setError(`Notice: Request failed or timed out. Details: ${invokeError.message}`)
       return
     }
+    
+    if (resData && !resData.success) {
+      setError(resData.error || 'Failed to register patient')
+      return
+    }
+    
+    await load()
     
     setShowAdd(false)
     setForm(emptyForm)
@@ -160,7 +162,13 @@ export default function ManagePatients() {
             </div>
             <div className="form-group">
               <label>Phone</label>
-              <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <input 
+                required
+                pattern="^\+?[0-9\-\s()]{7,15}$"
+                title="Please enter a valid phone number (e.g. +1234567890)"
+                value={form.phone} 
+                onChange={(e) => setForm({ ...form, phone: e.target.value })} 
+              />
             </div>
             <div className="form-group">
               <label>Date of Birth</label>
@@ -198,7 +206,13 @@ export default function ManagePatients() {
             </div>
             <div className="form-group">
               <label>Phone</label>
-              <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <input 
+                required
+                pattern="^\+?[0-9\-\s()]{7,15}$"
+                title="Please enter a valid phone number (e.g. +1234567890)"
+                value={form.phone} 
+                onChange={(e) => setForm({ ...form, phone: e.target.value })} 
+              />
             </div>
             <div className="form-group">
               <label>Date of Birth</label>

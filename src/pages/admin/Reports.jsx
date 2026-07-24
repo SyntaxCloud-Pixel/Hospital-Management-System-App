@@ -26,9 +26,10 @@ export default function Reports() {
     setLoading(true)
     const todayStr = new Date().toISOString().slice(0, 10)
 
-    const [docsRes, patsRes] = await Promise.all([
+    const [docsRes, patsRes, totalApptsRes] = await Promise.all([
       supabase.from('doctors').select('id', { count: 'exact', head: true }),
-      supabase.from('patients').select('id', { count: 'exact', head: true })
+      supabase.from('patients').select('id', { count: 'exact', head: true }),
+      supabase.from('appointments').select('id', { count: 'exact', head: true })
     ])
 
     let query = supabase.from('appointments').select(`
@@ -68,6 +69,7 @@ export default function Reports() {
     setStats({
       totalDoctors: docsRes.count ?? 0,
       totalPatients: patsRes.count ?? 0,
+      allTimeAppointments: totalApptsRes.count ?? 0,
       totalAppointments: appts.length,
       todayAppointments: todayCount,
       upcoming: upcomingCount,
@@ -152,6 +154,7 @@ export default function Reports() {
           <div className="stats-grid">
             <div className="stat-card"><div className="value">{stats.totalDoctors}</div><div className="label">Total Doctors</div></div>
             <div className="stat-card"><div className="value">{stats.totalPatients}</div><div className="label">Total Patients</div></div>
+            <div className="stat-card"><div className="value">{stats.allTimeAppointments}</div><div className="label">Total Appointments (All-time)</div></div>
             <div className="stat-card"><div className="value">{stats.totalAppointments}</div><div className="label">Appointments (in range)</div></div>
             <div className="stat-card"><div className="value">{stats.todayAppointments}</div><div className="label">Today's Appointments</div></div>
             <div className="stat-card"><div className="value">{stats.upcoming}</div><div className="label">Upcoming Appointments</div></div>

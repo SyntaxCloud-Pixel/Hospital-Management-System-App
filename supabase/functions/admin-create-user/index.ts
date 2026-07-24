@@ -20,12 +20,27 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')!
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ success: false, error: 'Missing Authorization header' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
+      return new Response(JSON.stringify({ success: false, error: 'Server misconfiguration: Missing Supabase environment variables' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     // Client scoped to the calling user, to verify they are an admin.
-    const callerClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     })
     const {
@@ -33,9 +48,9 @@ Deno.serve(async (req) => {
     } = await callerClient.auth.getUser()
 
     if (!user) {
-      return new Response(JSON.stringify({ error: 'Not authenticated' }), {
-        status: 401,
-        headers: corsHeaders,
+      return new Response(JSON.stringify({ success: false, error: 'Not authenticated' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
@@ -45,7 +60,16 @@ Deno.serve(async (req) => {
       .eq('id', user.id)
       .single()
 
-    const body = await req.json()
+    const bodyText = await req.text()
+    let body;
+    try {
+      body = JSON.parse(bodyText)
+    } catch (e) {
+      return new Response(JSON.stringify({ success: false, error: 'Invalid JSON body' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
     const { email, password, fullName, phone, role, specialization, department, dob, gender, bloodGroup, address } = body
 
     // Admins can create doctors, receptionists, or patients.
@@ -56,16 +80,16 @@ Deno.serve(async (req) => {
       (callerRole === 'receptionist' && role === 'patient')
 
     if (!isAllowed) {
-      return new Response(JSON.stringify({ error: 'You do not have permission to create this type of account' }), {
-        status: 403,
-        headers: corsHeaders,
+      return new Response(JSON.stringify({ success: false, error: 'You do not have permission to create this type of account' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    if (!email || !password || !fullName) {
-      return new Response(JSON.stringify({ error: 'Missing or invalid fields' }), {
-        status: 400,
-        headers: corsHeaders,
+    if (!email || !password || !fullName || !phone) {
+      return new Response(JSON.stringify({ success: false, error: 'Missing required fields (email, password, fullName, phone)' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
@@ -80,9 +104,9 @@ Deno.serve(async (req) => {
     })
 
     if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
-        status: 400,
-        headers: corsHeaders,
+      return new Response(JSON.stringify({ success: false, error: createError.message }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
@@ -119,9 +143,9 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: corsHeaders,
+    return new Response(JSON.stringify({ success: false, error: err.message || 'Internal server error' }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 })
